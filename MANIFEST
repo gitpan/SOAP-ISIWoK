@@ -1,3 +1,6 @@
+bin/ep3.xsl
+bin/isi_sword.pl
+examples/isi_carr.xml
 lib/SOAP/ISIWoK.pm
 Makefile.PL
 MANIFEST
