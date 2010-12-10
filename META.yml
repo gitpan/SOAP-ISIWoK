@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SOAP-ISIWoK
-version:            1.02
+version:            1.03
 abstract:           search and query the ISI Web of Knowledge
 author:
     - Timothy D Brody <tdb2@ecs.soton.ac.uk>
@@ -13,7 +13,6 @@ build_requires:
 requires:
     SOAP::Lite:   0.01
     XML::LibXML:  0.01
-    XML::Simple:  0.01
 no_index:
     directory:
         - t
