@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               SOAP-ISIWoK
-version:            1.03
+version:            1.04
 abstract:           search and query the ISI Web of Knowledge
 author:
     - Timothy D Brody <tdb2@ecs.soton.ac.uk>
