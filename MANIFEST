@@ -1,17 +1,7 @@
-bin/ep3.xsl
-bin/isi.pl
-bin/isi_sword.pl
-bin/isi_to_sword
-examples/dc.xsl
-examples/isi_carr.xml
+Makefile.PL
+MANIFEST
+README
+t/SOAP-ISIWoK.t
 lib/SOAP/ISIWoK.pm
 lib/SOAP/ISIWoK/Lite.pm
-lib/SOAP/ISIWoK/Sword.pm
-Makefile.PL
-MANIFEST			This list of files
-MANIFEST.SKIP
-README
-t/01_live.t
-t/02_live_lite.t
-t/SOAP-ISIWoK.t
 META.yml                                 Module meta-data (added by MakeMaker)

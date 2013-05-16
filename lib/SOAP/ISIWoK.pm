@@ -1,525 +1,793 @@
 package SOAP::ISIWoK;
 
-our $VERSION = '1.05';
+use SOAP::Lite;
+use HTTP::Cookies;
+use MIME::Base64;
+#use SOAP::Lite +'trace';
 
-use Carp;
-use SOAP::Lite
-#	+trace => "all"
-;
-use XML::LibXML;
-use Exporter;
-
-@ISA = qw( Exporter );
-
-@EXPORT = qw( );
-@EXPORT_OK = qw( @WOS_FIELDS @WOS_EDITIONS @WOS_INDEXES @WOS_LANGUAGES @WOS_DOCUMENT_TYPES );
-%EXPORT_TAGS = (
-	wos => [qw( @WOS_FIELDS @WOS_EDITIONS @WOS_INDEXES @WOS_LANGUAGES @WOS_DOCUMENT_TYPES )]
-);
-
-@WOS_FIELDS = (
-	abbrev_iso => '',
-	abbrev_11 => '',
-	abbrev_22 => 'Journal name abbreviation',
-	abbrev_29 => '',
-	abstract => 'The abstract of the article',
-	article_no => '',
-	article_nos => 'Article number',
-	author => 'Any additional authors',
-	authors => 'All authors',
-	bib_date => 'Cover date',
-	bib_id => 'Volume, issue, special, pages and year data',
-	bib_issue => 'Volume and year data',
-	bib_misc => '',
-	bib_pagecount => '',
-	bib_pages => 'Begin and end pages',
-	bib_vol => 'Issue and volume',
-	bk_binding => '',
-	bk_ordering => '',
-	bk_prepay => '',
-	bk_price => '',
-	bk_publisher => '',
-	book_authors => '',
-	book_corpauthor => '',
-	book_chapters => '',
-	book_desc => '',
-	book_editor => '',
-	book_editors => '',
-	book_note => '',
-	book_notes => '',
-	book_series => '',
-	book_subtitle => '',
-	bs_subtitle => '',
-	bs_title => '',
-	categories => '',
-	category => '',
-	conference => '',
-	conferences => '',
-	conf_city => '',
-	conf_date => '',
-	conf_end => '',
-	conf_host => '',
-	conf_id => '',
-	conf_location => '',
-	conf_start => '',
-	conf_title => '',
-	conf_sponsor => '',
-	conf_sponsors => '',
-	conf_state => '',
-	copyright => 'Copyright notice',
-	corp_authors => 'Corporate authors',
-	doctype => 'Document type',
-	editions => 'Edition code (or codes).',
-	editor => '',
-	email => '',
-	emails => 'Author email addresses',
-	email_addr => '',
-	heading => '',
-	headings => '',
-	ids => 'ISI TGA number',
-	io => '',
-	isbn => '',
-	issn => 'International Standard Serial Number',
-	issue_ed => '',
-	issue_title => '',
-	item_enhancedtitle => '',
-	item_title => 'Item title',
-	i_cid => '',
-	i_ckey => 'Cluster key',
-	keyword => '',
-	keywords => 'Author keywords',
-	keywords_plus => 'ISI generated keywords',
-	lang => '',
-	languages => 'Primary language',
-	load => '',
-	meeting_abstract => '',
-	name => '',
-	p => '',
-	primaryauthor => 'Primary author',
-	primarylang => '',
-	publisher => '',
-	pubtype => 'Publication type',
-	pub_address => '',
-	pub_city => '',
-	pub_url => '',
-	ref => '',
-	refs => 'The recid values of any cited references',
-	reprint => 'Reprint address',
-	research_addrs => 'Research address',
-	research => '',
-	reviewed_work => '',
-	rp_address => '',
-	rp_author => '',
-	rp_city => '',
-	rp_country => '',
-	rp_organization => '',
-	rp_state => '',
-	rp_street => '',
-	rp_suborganization => '',
-	rp_suborganizations => '',
-	rp_zip => '',
-	rp_zips => '',
-	rs_address => '',
-	rs_city => '',
-	rs_country => '',
-	rs_organization => '',
-	rs_state => '',
-	rs_street => '',
-	rs_suborganization => '',
-	rs_suborganizations => '',
-	rs_zip => '',
-	rs_zips => '',
-	rw_author => '',
-	rw_authors => '',
-	rw_lang => '',
-	rw_langs => '',
-	rw_year => '',
-	source_abbrev => 'Abbreviated name of the journal',
-	source_editors => '',
-	source_series => '',
-	source_title => 'Full name of the journal',
-	sq => '',
-	subject => '',
-	subjects => 'Subjects',
-	ui => '',
-	unit => '',
-	units => '',
-	ut => 'ISI UT identifier',
-);
-
-@WOS_SORT_FIELDS = (
-	'Date' => 'WOS inclusion date order.',
-	'Relevance' => 'The relevance of each record to the search request.',
-	'Times Cited' => 'The number of times each record is cited.',
-);
-
-@WOS_EDITIONS = (
-	SCI => 'Science Citation Index',
-	SSCI => 'Social Sciences Citation Index',
-	AHCI => 'Arts & Humanities Citation Index',
-	IC => 'Index Chemicus',
-	ISTP => 'Science & Technology Proceedings',
-	ISSHP => 'Social Sciences & Humanities Proceedings',
-	CCR => 'Current Chemical Reactions',
-);
-
-@WOS_INDEXES = (
-	AD => 'Address',
-	AU => 'Author',
-	CA => 'Cited Author',
-	CI => 'City',
-	CT => 'Conference',
-	CU => 'Country',
-	CW => 'Cited Work',
-	CY => 'Cited Year',
-	DT => 'Document Type',
-	GP => 'Group Author',
-	LA => 'Language',
-	OG => 'Organization',
-	PS => 'Province/State',
-	PY => 'Pub Year',
-	SA => 'Street Address',
-	SG => 'Sub-organization',
-	SO => 'Source',
-	TI => 'Title',
-	TS => 'Topic',
-	UT => 'ISI UT identifier',
-	ZP => 'Zip/Postal Code',
-);
-
-# LA index
-@WOS_LANGUAGES = (
-	'AF' => 'Afrikaans',
-	'AR' => 'Arabic',
-	'BE' => 'Bengali',
-	'BU' => 'Bulgarian',
-	'BY' => 'Byelorussian',
-	'CA' => 'Catalan',
-	'CH' => 'Chinese',
-	'CR' => 'Croatian',
-	'CZ' => 'Czech',
-	'DA' => 'Danish',
-	'DU' => 'Dutch',
-	'EN' => 'English',
-	'ES' => 'Estonian',
-	'FI' => 'Finnish',
-	'FL' => 'Flemish',
-	'FR' => 'French',
-	'GA' => 'Gaelic',
-	'GL' => 'Galician',
-	'GN' => 'Georgian',
-	'GE' => 'German',
-	'GR' => 'Greek',
-	'HE' => 'Hebrew',
-	'HU' => 'Hungarian',
-	'IC' => 'Icelandic',
-	'IT' => 'Italian',
-	'JA' => 'Japanese',
-	'KO' => 'Korean',
-	'LA' => 'Latin',
-	'MC' => 'Macedonian',
-	'XX' => 'Multi-Language',
-	'NO' => 'Norwegian',
-	'PE' => 'Persian',
-	'PO' => 'Polish',
-	'PT' => 'Portuguese',
-	'PR' => 'Provencal',
-	'RM' => 'Rumanian',
-	'RS' => 'Russian',
-	'SE' => 'Serbian',
-	'SC' => 'Serbo-Croatian',
-	'SK' => 'Slovak',
-	'SL' => 'Slovene',
-	'SP' => 'Spanish',
-	'SW' => 'Swedish',
-	'TU' => 'Turkish',
-	'UK' => 'Ukrainian',
-	'WE' => 'Welsh',
-);
-
-# DT index
-@WOS_DOCUMENT_TYPES = (
-	'2' => 'Abstract of Published Item',
-	'A' => 'Art Exhibit Review',
-	'@' => 'Article',
-	'7' => 'Bibliography',
-	'I' => 'Biographical-Item',
-	'B' => 'Book Review',
-	'K' => 'Chronology',
-	'C' => 'Correction',
-	'C' => 'Correction, Addition',
-	'Z' => 'Dance Performance Review',
-	'0' => 'Database Review',
-	'D' => 'Discussion',
-	'E' => 'Editorial Material',
-	'X' => 'Excerpt',
-	'O' => 'Fiction, Creative Prose',
-	'F' => 'Film Review',
-	'8' => 'Hardware Review',
-	'I' => 'Item About an Individual',
-	'L' => 'Letter',
-	'M' => 'Meeting Abstract',
-	'J' => 'Music Performance Review',
-	'S' => 'Music Score',
-	'G' => 'Music Score Review',
-	'5' => 'News Item',
-	'N' => 'Note',
-	'Y' => 'Poetry',
-	'H' => 'Record Review',
-	'6' => 'Reprint',
-	'R' => 'Review',
-	'Q' => 'Script',
-	'9' => 'Software Review',
-	'V' => 'TV Review, Radio Review',
-	'V' => 'TV Review, Radio Review, Video',
-	'T' => 'Theater Review',
-);
-
-use 5.008;
+use 5.008000;
 use strict;
+use warnings;
 
-our $ISI_ENDPOINT = "http://wok-ws.isiknowledge.com/esti/soap/SearchRetrieve";
-our $ISI_NS = "http://esti.isinet.com/soap/search";
+our @ISA = qw();
 
-sub new
-{
-	my( $class, %self ) = @_;
+our $VERSION = '3.01';
 
-	my $self = bless \%self, ref($class) || $class;
+use constant {
+	AUTHENTICATE_ENDPOINT => 'http://search.webofknowledge.com/esti/wokmws/ws/WOKMWSAuthenticate',
+	AUTHENTICATE_NS => 'http://auth.cxf.wokmws.thomsonreuters.com',
 
-	return $self;
-}
+	WOKSEARCH_ENDPOINT => 'http://search.webofknowledge.com/esti/wokmws/ws/WokSearch',
+	WOKSEARCH_LITE_ENDPOINT => 'http://search.webofknowledge.com/esti/wokmws/ws/WokSearchLite',
 
-sub _soap
-{
-	my( $self ) = @_;
+	WOKSEARCH_NS => 'http://woksearch.cxf.wokmws.thomsonreuters.com',
 
-	my $soap = SOAP::Lite->new();
-	$soap->proxy( $ISI_ENDPOINT );
+	WOKSEARCH_SERVICE_TYPE => 'woksearch',
+	WOKSEARCH_LITE_SERVICE_TYPE => 'woksearchlite',
+};
 
-# don't include namespace in actions
-	$soap->on_action(sub { qq("$_[1]") });
-#$soap->on_fault(sub { print STDERR "Error: $_[1]" });
-
-# don't guess auto types
-	$soap->autotype(0);
-# send pretty-printed XML
-	$soap->readable(1);
-# put everything in the ISI namespace
-	$soap->default_ns($ISI_NS);
-
-	return $soap;
-}
-
-sub search
-{
-	my( $self, $query, %opts ) = @_;
-
-	my $offset = exists $opts{offset} ? $opts{offset} : 1;
-	my $max = exists $opts{max} ? $opts{max} : 10;
-	my $database = exists $opts{database} ? $opts{database} : "WOS";
-	my $fields = exists $opts{fields} ? $opts{fields} : [qw( times_cited )];
-	my $sort = exists $opts{sort} ? $opts{sort} : "Relevance";
-
-	my $soap = $self->_soap();
-
-	# ISI requires every argument be included, even if it's blank
-	my $som = $soap->call("searchRetrieve",
-			SOAP::Data->name("databaseID")->value($database),
-			SOAP::Data->name("query")->value($query),
-			# depth is the time period
-			SOAP::Data->name("depth")->value(""),
-			# editions is SCI, SSCI etc.
-			SOAP::Data->name("editions")->value(""),
-			# sort by descending relevance
-			SOAP::Data->name("sort")->value($sort),
-			# start returning records at 1
-			SOAP::Data->name("firstRec")->value("$offset"),
-			# return upto 10 records
-			SOAP::Data->name("numRecs")->value("$max"),
-			# NOTE: if no fields are specified all are returned, times_cited is
-			# an option
-			SOAP::Data->name("fields")->value(join(" ", @$fields)),
-		);
-	# something went wrong
-	if( $som->fault )
-	{
-		Carp::croak "ISI responded with error: " . $som->fault->{ faultstring };
-	}
-
-	my $result = $som->result;
-
-	my $total = $result->{"recordsFound"};
-
-	my $doc = XML::LibXML->new->parse_string( $result->{records} );
-	my $records = $doc->documentElement;
-	$records->setAttribute( recordsFound => $total );
-
-	return $doc;
-}
-
-sub retrieve
-{
-	my( $self, $ut, %opts ) = @_;
-
-	my $database = exists $opts{database} ? $opts{database} : "WOS";
-	my $fields = exists $opts{fields} ? $opts{fields} : [qw( times_cited )];
-	my $sort = exists $opts{sort} ? $opts{sort} : "Relevance";
-
-	my $soap = $self->_soap();
-
-	# ISI requires every argument be included, even if it's blank
-	my $som = $soap->call("retrieve",
-			SOAP::Data->name("databaseID")->value($database),
-			# The value of the primaryKey element in a record.  This value
-			# uniquely identifies the parent record.  For WOS this value is in
-			# the <ut> element.
-			SOAP::Data->name("primaryKeys")->value($ut),
-			# sort by descending relevance
-			SOAP::Data->name("sort")->value($sort),
-			# NOTE: if no fields are specified all are returned, times_cited is
-			# an option
-			SOAP::Data->name("fields")->value(join(" ", @$fields)),
-		);
-	# something went wrong
-	if( $som->fault )
-	{
-		Carp::croak "ISI responded with error: " . $som->fault->{ faultstring };
-	}
-
-	my $result = $som->result;
-
-	my $doc = XML::LibXML->new->parse_string( $result );
-	my $records = $doc->documentElement;
-
-	return $doc;
-}
-
-1;
-__END__
-# Below is stub documentation for your module. You'd better edit it!
+use constant {
+	QUERY_LANGUAGE => 'en',
+};
 
 =head1 NAME
 
-SOAP::ISIWoK - search and query the ISI Web of Knowledge
+SOAP::ISIWoK - interogate the ISI WoS database
 
 =head1 SYNOPSIS
 
   use SOAP::ISIWoK;
 
-  my $wok = SOAP::ISIWoK->new();
+  $wos = SOAP::ISIWoK->new;
+  
+  $som = $wos->authenticate;
+  die $som->faultstring if $som->fault;
 
-  my $results = $wok->search( "AU = (Brody)" );
-  my $results = $wok->search( "AU = (Brody)", offset => 10, max => 20 );
-  my $results = $wok->retrieve( "A1975AV59800009" );
-
-  print $results->toString;
+  $som = $wos->search('AU = (Brody)');
 
 =head1 DESCRIPTION
 
-This module is a thin wrapper for the ISI Web of Knowledge SOAP interface.
+Search and retrieve records from the Thomson Reuters ISI Web of Knowledge
+database.
 
-It takes a search description and returns the resulting XML response from ISI as a L<XML::LibXML> document. Parsing the search result is outside of the scope of this module.
+This module is NOT backwards compatible with SOAP::ISIWoK 1.xx (deprecated WoK
+API). Significant changes:
 
-To access the ISI WoK interface you will need a subscription to ISI WoK and arrange for access to their Web services server (you'll need to talk to your ISI representative).
+  - you must now authenticate with WoK to get a session id
+  - methods now return SOAP::Lite objects, use your favourite XML parser to
+	parse $som->result->{records} or
+  - throw an error on $som->fault
 
-=head1 ISI QUERY FORMAT
+=head2 Editions
 
-	AU = (Brody) and TI = (citation impact)
-
-A search query consists of I<index> = I<terms> where I<index> is one of the indexes listed below. I<terms> is one or more terms in double quotes (") or parentheses ('(' and ')').
-
-Multiple operands can be joined using logical operators:
+Select which editions to query. Some editions may not be available, depending on your WoS subscription.
 
 =over 4
 
-=item same
+=item SCI
 
-Results in all records in which both operands are found together in the same sentence. A sentence is a period delimited string. A field that does not contain period delimited strings is treated as a single sentence. If a 'same' operator joins two query expressions, then both query expressions must have the same index.
+Science Citation Index Expanded
 
-=item not
+=item SSCI
 
-Results in all records represented in the left operand but not the right operand.
+Social Sciences Citation Index
 
-=item and
+=item AHCI
 
-Results in all records represented in the both the left operand and the right operand.
+Arts & Humanities Citation Index
 
-=item or
+=item ISTP
 
-Results in all records represented in either or both the left operand and the right operand.
+Conference Proceedings Citation Index - Science
 
-=back
+=item ISSHP
 
-=head2 Search Indexes
+Conference Proceedings Citation Index - Social Sciences
 
-	AD	Address
-	AU	Author
-	CA	Cited Author
-	CI	City
-	CT	Conference
-	CU	Country
-	CW	Cited Work
-	CY	Cited Year
-	DT	Document Type
-	GP	Group Author
-	LA	Language
-	OG	Organization
-	PS	Province/State
-	PY	Pub Year
-	SA	Street Address
-	SG	Sub-organization
-	SO	Source
-	TI	Title
-	TS	Topic
-	UT	ISI UT identifier
-	ZP	Zip/Postal Code
+=item IC
 
-=head2 EXPORT
+Index Chemicus
 
-None by default.
+=item CCR
 
+Current Chemical Reactions
 
-=head1 HISTORY
+=item BSCI
 
-=over 8
+Book Citation Index - Science
 
-=item 1.03
+=item BHCI
 
-Fixed some issues in the POD.
-
-=item 0.01
-
-Original version; created by h2xs 1.23 with options
-
-  -n
-	SOAP::ISIWoK
-	-e
-	-A
-	-C
-	-X
-	-c
-	-b
-	5.8.0
+Book Citation Index - Social Sciences and Humanities
 
 =back
 
+=head2 Sort Fields
 
+Sort results by the given field. Only relevance and times-cited may be reverse sorted, by specifying '-' in front of the sort name.
+
+=over 4
+
+=item AU
+
+Author
+
+=item CF
+
+Conference Title
+
+=item CG
+
+Page
+
+=item CW
+
+Source
+
+=item CV
+
+Volume
+
+=item CY
+
+Publication Year
+
+=item LC
+
+Local Times Cited
+
+=item LD
+
+Load Date
+
+=item PG
+
+Page
+
+=item PY
+
+Publication Year
+
+=item RS / -RS
+
+Relevance
+
+=item SO
+
+Source
+
+=item TC / -TC
+
+Times Cited
+
+=item VL
+
+Volume
+
+=back
+
+
+=head2 Required Fields
+
+Only return records that contain the given field(s). For example:
+
+	fields => [qw(
+		address_spec
+		category_info
+	)],
+
+is logically equivalent to only showing records that contain:
+
+	(Publisher City OR Publisher Address)
+		AND
+	(Web of Science Category OR Subject Category)
+
+=over 4
+
+=item pub_info
+
+Publication Type (J=Journal; B=Book; S=Series)
+
+=item names
+
+Authors, Book Authors, Group Authors, Book Group Authors, ResearcherID Number, Editors, Publisher
+
+=item full_name
+
+Author Full Name
+
+=item titles
+
+Publication Name, Book Series Title, Book Series Subtitle, 29-Character Source Abbreviation, ISO Source Abbreviation
+
+=item language
+
+Language
+
+=item doctypes
+
+Document Type
+
+=item conf_title
+
+Conference Title
+
+=item conf_date
+
+Conference Date
+
+=item conf_host
+
+Conference Host
+
+=item conf_locations
+
+Conference Location
+
+=item sponsors
+
+Conference Sponsors
+
+=item keywords
+
+Author Keywords
+
+=item keywords_plus
+
+Keywords Plus
+
+=item abstract
+
+Abstract
+
+=item addresses
+
+Author Address
+
+=item reprint_contact
+
+Reprint Address
+
+=item email_addr
+
+E-mail Address
+
+=item grant
+
+Funding Agency and Grant Number
+
+=item fund_text
+
+Funding Text
+
+=item refs
+
+Cited Reference Count
+
+=item address_spec
+
+Publisher City, Publisher Address
+
+=item category_info
+
+Web of Science Category, Subject Category
+
+=item identifiers
+
+International Standard Serial Number (ISSN), International Standard Book Number (ISBN), Book Digital Object Identifier (DOI), Article Number, Digital Object Identifier (DOI)
+
+=item pub_info
+
+Publication Date, Year Published, Volume, Issue, Part Number, Supplement, Special Issue
+
+=item page
+
+Beginning Page, Ending Page, Page Count
+
+=item book_chapters
+
+Chapter Count in a Book
+
+=item ids
+
+Document Delivery Number
+
+=item UID
+
+Accession Number
+
+=back
+
+
+=head2 Options
+
+	options => {
+		RecordIDs => 'On',
+	},
+
+=over 4
+
+=item RecordIDs
+
+	On
+	Off
+
+Return the UIDs of records as SOAP data.
+
+=back
+
+=head1 METHODS
+
+=over 4
+
+=cut
+
+# Preloaded methods go here.
+
+=item $wos = SOAP::ISIWoK->new( [ OPTIONS ] )
+
+Options:
+
+=over 4
+
+=item database = WOK
+
+Database to search (WOK = all database).
+
+=item collections = { WOS => [] }
+
+	BIOABS, BCI, BIOSIS, CABI, CSCD, CCC, DIIDW, FSTA, INSPEC, MEDLINE, WOS,
+	ZOOREC
+
+The key is the Collection to search (WOS = Web of Science) and the value is a list of editions within that collection.
+
+See Web Service documentation for the available editions, otherwise an empty array will search all editions that you are subscribed to.
+
+=back
+
+=cut
+
+sub new
+{
+	my ($class, %self) = @_;
+
+	$self{cookie_jar} ||= HTTP::Cookies->new(ignore_discard => 1);
+	$self{endpoint} ||= WOKSEARCH_ENDPOINT;
+	$self{service_type} ||= WOKSEARCH_SERVICE_TYPE;
+	$self{database} ||= 'WOK';
+	$self{collections} ||= { WOS => [] };
+
+	my $self = bless \%self, $class;
+
+	return $self;
+}
+
+sub DESTROY
+{
+	shift->closeSession;
+}
+
+# this suppreses the usual xsi:nil="true" attribute, which WoS rejects
+sub SOAP::Serializer::as_nonil
+{
+	my ($self, $value, $name, $type, $attr) = @_;
+	delete $attr->{'xsi:nil'};
+	return [ $name, $attr, $value ];
+}
+
+=item $som = $wos->authenticate([$username, $password])
+
+	die $som->faultstring if $som->fault;
+	print "Session ID: ".$som->result;
+
+Get a WoS session ID.
+
+=cut
+
+sub authenticate
+{
+	my ($self, $username, $password) = @_;
+
+	my $soap = SOAP::Lite->new(
+		proxy => AUTHENTICATE_ENDPOINT,
+	);
+
+	$soap->transport->cookie_jar($self->{cookie_jar});
+
+	if (defined $username) {
+		$password = '' if !defined $password;
+		$soap->transport->http_request->header(
+			Authorization => "Basic ".MIME::Base64::encode_base64("$username:$password")
+		);
+	}
+
+	my $som = $soap->call( SOAP::Data->new(
+			type => 'nonil', # custom type
+			name => 'authenticate',
+			prefix => '',
+			uri => AUTHENTICATE_NS,
+		));
+
+	$self->{sid} = $som->result if !$som->fault;
+
+	return $som;
+}
+
+=item $som = $wos->closeSession()
+
+Explicitly close the session with WoS. Otherwise is called when this object goes out of scope.
+
+=cut
+
+sub closeSession
+{
+	my ($self) = @_;
+
+	return if !$self->{sid};
+
+	my $soap = SOAP::Lite->new(
+		proxy => AUTHENTICATE_ENDPOINT,
+	);
+
+	$soap->transport->cookie_jar($self->{cookie_jar});
+
+	my $som = $soap->call( SOAP::Data->new(
+			type => 'nonil', # custom type
+			name => 'closeSession',
+			prefix => '',
+			uri => AUTHENTICATE_NS,
+		));
+
+	undef $self->{sid};
+
+	return $som;
+}
+
+sub _retrieveParameters
+{
+	my ($self, %opts) = @_;
+
+	$opts{offset} = 0 if !defined $opts{offset};
+	$opts{max} = 10 if !defined $opts{max};
+	$opts{fields} = [] if !exists $opts{fields};
+	$opts{options} = {} if !exists $opts{options};
+
+	my @rparams = (
+		SOAP::Data->name( firstRecord => $opts{offset}+1 ),
+		SOAP::Data->name( count => $opts{max} ),
+	);
+
+	if ($opts{sort}) {
+		my $sort = $opts{sort};
+		my $order = $sort =~ s/^-// ? 'D' : 'A';
+		push @rparams, SOAP::Data->name( sortField => \SOAP::Data->value(
+				SOAP::Data->name( name => $sort ),
+				SOAP::Data->name( sort => $order ),
+			) );
+	}
+
+	if ($opts{fields} && @{$opts{fields}}) {
+		push @rparams, SOAP::Data->name( viewField => \SOAP::Data->value(
+			SOAP::Data->name( collectionName => 'WOS' ), # WOS only valid collectionName ???
+			map {
+				SOAP::Data->name( fieldName => $_ )
+			} @{$opts{fields}}
+		) );
+	}
+
+	foreach my $key (sort keys %{$opts{options}})
+	{
+		push @rparams, SOAP::Data->name( option => [
+				SOAP::Data->name(key => $key),
+				SOAP::Data->name(value => $opts{options}{$key}),
+			]);
+	}
+
+	return @rparams;
+}
+
+sub soap
+{
+	my ($self) = @_;
+
+	my $soap = SOAP::Lite->new(
+		proxy => $self->{endpoint},
+		autotype => 0,
+	);
+
+	$soap->transport->cookie_jar($self->{cookie_jar});
+
+	return $soap;
+}
+
+=item $som = $wos->citedReferences($uid [, OPTIONS ])
+
+=cut
+
+sub citedReferences
+{
+	my ($self, $q, %opts) = @_;
+
+	my $service = $self->{service_type};
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:citedReferences",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		SOAP::Data->name(databaseId => $self->{database}),
+		SOAP::Data->name(uid => $q),
+		SOAP::Data->name(queryLanguage => QUERY_LANGUAGE),
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+=item $som = $wos->citedReferencesRetrieve($queryId [, OPTIONS ])
+
+=cut
+
+sub citedReferencesRetrieve
+{
+	my ($self, $q, %opts) = @_;
+
+	my $service = $self->{service_type};
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:citedReferencesRetrieve",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		SOAP::Data->name(queryId => $q),
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+sub _related
+{
+	my ($self, $method, $q, %opts) = @_;
+
+	my $service = $self->{service_type};
+
+	my @qparams;
+
+	push @qparams, SOAP::Data->name(databaseId => $self->{database});
+
+	push @qparams, SOAP::Data->name(uid => $q);
+
+	foreach my $collection (sort keys %{$self->{collections}}) {
+		foreach my $edition (sort @{$self->{collections}{$collection}}) {
+			push @qparams, SOAP::Data->name(editions => \SOAP::Data->value(
+				SOAP::Data->name(collection => $collection),
+				SOAP::Data->name(edition => $edition),
+			) );
+		}
+	}
+
+	if ($opts{begin} || $opts{end}) {
+		push @qparams, SOAP::Data->name( timeSpan => \SOAP::Data->value(
+			SOAP::Data->name(begin => $opts{begin}),
+			SOAP::Data->name(end => $opts{end}),
+		) );
+	}
+
+	push @qparams, SOAP::Data->name(queryLanguage => QUERY_LANGUAGE);
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:$method",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		@qparams,
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+=item $som = $wos->citingArticles($uid [, OPTIONS ])
+
+=cut
+
+sub citingArticles
+{
+	my ($self, $q, %opts) = @_;
+
+	return $self->_related('citingArticles', $q, %opts);
+}
+
+=item $som = $wos->relatedRecords($uid [, OPTIONS ])
+
+=cut
+
+sub relatedRecords
+{
+	my ($self, $q, %opts) = @_;
+
+	return $self->_related('relatedRecords', $q, %opts);
+}
+
+=item $som = $wos->retrieve($queryId [, OPTIONS ])
+
+=cut
+
+sub retrieve
+{
+	my ($self, $q, %opts) = @_;
+
+	$opts{sort} = '-RS' if !exists $opts{sort};
+
+	my $service = $self->{service_type};
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:retrieve",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		SOAP::Data->name(queryId => $q),
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+=item $som = $wos->retrieveById(UIDs [, OPTIONS])
+
+UIDs is an array ref of uids.
+
+=cut
+
+sub retrieveById
+{
+	my ($self, $q, %opts) = @_;
+
+	$q = [$q] if ref($q) ne "ARRAY";
+
+	my $service = $self->{service_type};
+
+	my @qparams;
+
+	push @qparams, SOAP::Data->name(databaseId => $self->{database});
+
+	push @qparams, map {
+			SOAP::Data->name(uid => $_)
+		} @$q;
+
+	push @qparams, SOAP::Data->name(queryLanguage => QUERY_LANGUAGE);
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:retrieveById",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		@qparams,
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+=item $som = $wos->search($query [, OPTIONS])
+
+Options:
+
+=over 4
+
+=item begin - YYYY-MM-DD
+
+=item end - YYYY-MM-DD
+
+=item offset = 0
+
+=item max = 10
+
+=item sort = -RS
+
+See L</Sort Fields>.
+
+=item fields = []
+
+See L</Required Fields>.
+
+=item options = {}
+
+See L</Options>
+
+=back
+
+=cut
+
+sub search
+{
+	my ($self, $q, %opts) = @_;
+
+	$opts{sort} = '-RS' if !exists $opts{sort};
+
+	my @qparams;
+
+	push @qparams, SOAP::Data->name(databaseId => $self->{database});
+
+	push @qparams, SOAP::Data->name(userQuery => $q);
+
+	foreach my $collection (sort keys %{$self->{collections}}) {
+		foreach my $edition (sort @{$self->{collections}{$collection}}) {
+			push @qparams, SOAP::Data->name(editions => \SOAP::Data->value(
+				SOAP::Data->name(collection => $collection),
+				SOAP::Data->name(edition => $edition),
+			) );
+		}
+	}
+
+	if ($opts{begin} || $opts{end}) {
+		push @qparams, SOAP::Data->name( timeSpan => \SOAP::Data->value(
+			SOAP::Data->name(begin => $opts{begin}),
+			SOAP::Data->name(end => $opts{end}),
+		) );
+	}
+
+	push @qparams, SOAP::Data->name(queryLanguage => QUERY_LANGUAGE);
+
+	my $service = $self->{service_type};
+
+	my $som = $self->soap->call(
+		SOAP::Data->new(
+			name => "$service:search",
+			attr => {
+				"xmlns:$service" => "http://$service.v3.wokmws.thomsonreuters.com",
+			},
+		),
+		SOAP::Data->name(queryParameters => \SOAP::Data->value(@qparams)),
+		SOAP::Data->name(retrieveParameters => \SOAP::Data->value($self->_retrieveParameters(%opts))),
+	);
+
+	return _fix_records($som);
+}
+
+sub _fix_records
+{
+	my ($som) = @_;
+
+	# <REC r_id_disclaimer=""> attribute is sometimes repeated, so lets fix
+	# that for the consuming user
+	if (defined $som->result && exists $som->result->{records}) {
+		$som->result->{records} =~ s/r_id_disclaimer="[^"]+"//g;
+	}
+
+	return $som;
+}
+
+1;
+__END__
+
+=back
 
 =head1 SEE ALSO
 
-L<SOAP::Lite>, http://www.isiknowledge.com/
+L<SOAP::Lite>
 
 =head1 AUTHOR
 
-Timothy D Brody, E<lt>tdb2@ecs.soton.ac.ukE<gt>
+Tim Brody, E<lt>tdb2@ecs.soton.ac.ukE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2010 by Tim D Brody, University of Southampton, UK
+Copyright (C) 2013 by Tim Brody, University of Southampton (UK)
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.8 or,
+it under the same terms as Perl itself, either Perl version 5.14.2 or,
 at your option, any later version of Perl 5 you may have available.
 
 

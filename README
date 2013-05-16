@@ -1,8 +1,8 @@
-SOAP-ISIWoK version 1.00
-========================
+SOAP-ISIWoK
+===========
 
-A thin wrapper for SOAP::Lite that takes care of the complexities of talking to
-the ISI Web of Knowledge SOAP interface.
+Search and retrieve records from the Thomson Reuters ISI Web of Knowledge
+database.
 
 INSTALLATION
 
@@ -17,14 +17,14 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  SOAP::Lite, XML::LibXML
+  SOAP::Lite
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2010 by Timothy D Brody
+Copyright (C) 2013 by Tim Brody, University of Southampton (UK)
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.8 or,
+it under the same terms as Perl itself, either Perl version 5.14.2 or,
 at your option, any later version of Perl 5 you may have available.
 
 
